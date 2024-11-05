@@ -5,7 +5,11 @@ const {
 module.exports = (sequelize, DataTypes) => {
   class Teacher extends Model {
   static associate(models) {
-    Teacher.belongsToMany(models.Lesson, { through: models.LessonTeacher, foreignKey: 'teacherId' });
+    Teacher.belongsToMany(models.Lesson, {
+      through: models.LessonTeacher, 
+      foreignKey: 'teacher_id',       
+      otherKey: 'lesson_id'
+    });
     }
   }
   Teacher.init({
@@ -13,6 +17,8 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'Teacher',
+    tableName: 'teachers',
+    timestamps: false
   });
   return Teacher;
 };

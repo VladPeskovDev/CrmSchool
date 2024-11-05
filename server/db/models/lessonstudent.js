@@ -8,6 +8,7 @@ module.exports = (sequelize, DataTypes) => {
   LessonStudent.init({
     lessonId: {
       type: DataTypes.INTEGER,
+      field: 'lesson_id',
       references: {
         model: 'Lesson',
         key: 'id'
@@ -15,6 +16,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     studentId: {
       type: DataTypes.INTEGER,
+      field: 'student_id',
       references: {
         model: 'Student',
         key: 'id'
@@ -27,6 +29,7 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'LessonStudent',
+    tableName: 'lesson_students',
     timestamps: false 
   });
   return LessonStudent;
