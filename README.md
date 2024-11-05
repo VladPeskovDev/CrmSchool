@@ -40,3 +40,11 @@ URL: http://localhost:3000/lessons/pagination?page=1&lessonsPerPage=5
 Вторая страница с 10 занятиями на странице:
 URL: http://localhost:3000/lessons/pagination?page=2&lessonsPerPage=10
 Метод: GET
+
+
+http://localhost:3000/lessons?date=2019-09-01,2019-09-05&status=1&teacherIds=1,3&studentsCount=2,4&page=1&lessonsPerPage=5
+
+
+http://localhost:3000/lessons?date=2019-09-01&status=1&teacherIds=1&studentsCount=3&page=1&lessonsPerPage=1
+
+http://localhost:3000/lessons?teacherIds=1

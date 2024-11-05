@@ -1,9 +1,155 @@
 const lessonsRouter = require('express').Router();
-const { Lesson, Teacher, Student } = require('../../db/models');
+const { Lesson, Teacher, Student, LessonStudent } = require('../../db/models');
 const { Op } = require('sequelize');
 
 
-// Эндпоинт для фильтрации по дате (одна или две даты)
+  lessonsRouter.get('/', async (req, res) => {
+    const { date, status, teacherIds, studentsCount, page = 1, lessonsPerPage = 5 } = req.query;
+  
+    try {
+      const whereClause = {};
+      const includeClause = [];
+  
+      // Фильтр по дате
+      if (date) {
+        if (date.includes(',')) {
+          const [startDate, endDate] = date.split(',');
+          whereClause.date = {
+            [Op.between]: [new Date(startDate), new Date(endDate)],
+          };
+        } else {
+          whereClause.date = { [Op.eq]: new Date(date) };
+        }
+      }
+  
+      // Фильтр по статусу (применяется только если явно указан)
+      if (status !== undefined) {
+        whereClause.status = parseInt(status, 10);
+      }
+  
+      // Фильтр по ID учителей
+      if (teacherIds) {
+        const ids = teacherIds.split(',').map(id => parseInt(id, 10));
+        includeClause.push({
+          model: Teacher,
+          where: { id: { [Op.in]: ids } },
+          through: { attributes: [] },
+        });
+      }
+  
+      // Включаем студентов, чтобы потом фильтровать по количеству
+      includeClause.push({
+        model: Student,
+        through: { attributes: ["visit"] },
+      });
+  
+      // Пагинация
+      const offset = (page - 1) * lessonsPerPage;
+  
+      // Запрос с условиями фильтрации
+      let lessons = await Lesson.findAll({
+        where: whereClause,
+        include: includeClause,
+        limit: parseInt(lessonsPerPage, 10),
+        offset: offset,
+      });
+  
+      // Фильтр по количеству учеников
+      if (studentsCount) {
+        let minCount = 0;
+        let maxCount = Infinity;
+  
+        if (studentsCount.includes(',')) {
+          [minCount, maxCount] = studentsCount.split(',').map(Number);
+        } else {
+          minCount = maxCount = parseInt(studentsCount, 10);
+        }
+  
+        // Фильтруем занятия по количеству учеников после выборки
+        lessons = lessons.filter(
+          lesson => lesson.Students && lesson.Students.length >= minCount && lesson.Students.length <= maxCount
+        );
+      }
+  
+      // Форматируем данные с подсчетом посещений
+      const formattedLessons = lessons.map((lesson) => ({
+        id: lesson.id,
+        date: lesson.date,
+        title: lesson.title,
+        status: lesson.status,
+        visitCount: lesson.Students 
+          ? lesson.Students.filter(student => student.LessonStudent && student.LessonStudent.visit).length 
+          : 0,
+        students: lesson.Students
+          ? lesson.Students.map((student) => ({
+              id: student.id,
+              name: student.name,
+              visit: student.LessonStudent ? student.LessonStudent.visit : false,
+            }))
+          : [],
+        teachers: lesson.Teachers
+          ? lesson.Teachers.map((teacher) => ({
+              id: teacher.id,
+              name: teacher.name,
+            }))
+          : [],
+      }));
+  
+      if (formattedLessons.length === 0) {
+        return res.status(400).json({ message: 'Нет занятий с указанными фильтрами' });
+      }
+  
+      res.json(formattedLessons);
+    } catch (error) {
+      console.error('Ошибка при запросе данных занятий:', error);
+      res.status(500).send('Ошибка при запросе данных занятий');
+    }
+  });
+
+  lessonsRouter.get('/studentsCount', async (req, res) => {
+    const { studentsCount } = req.query;
+  
+    try {
+      let minCount = 0;
+      let maxCount = Infinity;
+  
+      if (studentsCount.includes(',')) {
+        [minCount, maxCount] = studentsCount.split(',').map(Number);
+      } else {
+        minCount = maxCount = parseInt(studentsCount, 10);
+      }
+  
+      const lessons = await Lesson.findAll({
+        include: [
+          {
+            model: Student,
+            through: { attributes: [] },
+          },
+        ],
+      });
+  
+      const filteredLessons = lessons.filter(
+        lesson => lesson.Students.length >= minCount && lesson.Students.length <= maxCount
+      );
+  
+      if (filteredLessons.length === 0) {
+        return res.status(200).json({ message: 'Нет занятий с указанным количеством студентов' });
+      }
+  
+      res.json(filteredLessons);
+    } catch (error) {
+      console.error('Ошибка при фильтрации по количеству учеников:', error);
+      res.status(500).send('Ошибка при фильтрации по количеству учеников');
+    }
+  });
+
+  
+  module.exports = lessonsRouter;
+  
+
+
+  /*
+// Эндпоинт для фильтрации по дате
 lessonsRouter.get('/date', async (req, res) => {
     const { date } = req.query;
   
@@ -141,7 +287,4 @@ lessonsRouter.get('/pagination', async (req, res) => {
     }
   });
 
-
-
-
-module.exports = lessonsRouter;
+*/
