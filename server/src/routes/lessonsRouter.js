@@ -22,7 +22,7 @@ const { Op } = require('sequelize');
         }
       }
   
-      // Фильтр по статусу (применяется только если явно указан)
+      // Фильтр по статусу 
       if (status !== undefined) {
         whereClause.status = parseInt(status, 10);
       }
@@ -54,7 +54,7 @@ const { Op } = require('sequelize');
         offset: offset,
       });
   
-      // Фильтр по количеству учеников
+      // Фильтр по учеников
       if (studentsCount) {
         let minCount = 0;
         let maxCount = Infinity;
@@ -65,13 +65,13 @@ const { Op } = require('sequelize');
           minCount = maxCount = parseInt(studentsCount, 10);
         }
   
-        // Фильтруем занятия по количеству учеников после выборки
+        // Фильтруем занятия по количеству учеников 
         lessons = lessons.filter(
           lesson => lesson.Students && lesson.Students.length >= minCount && lesson.Students.length <= maxCount
         );
       }
   
-      // Форматируем данные с подсчетом посещений
+      // Форматируем 
       const formattedLessons = lessons.map((lesson) => ({
         id: lesson.id,
         date: lesson.date,
@@ -103,43 +103,6 @@ const { Op } = require('sequelize');
     } catch (error) {
       console.error('Ошибка при запросе данных занятий:', error);
       res.status(500).send('Ошибка при запросе данных занятий');
-    }
-  });
-
-  lessonsRouter.get('/studentsCount', async (req, res) => {
-    const { studentsCount } = req.query;
-  
-    try {
-      let minCount = 0;
-      let maxCount = Infinity;
-  
-      if (studentsCount.includes(',')) {
-        [minCount, maxCount] = studentsCount.split(',').map(Number);
-      } else {
-        minCount = maxCount = parseInt(studentsCount, 10);
-      }
-  
-      const lessons = await Lesson.findAll({
-        include: [
-          {
-            model: Student,
-            through: { attributes: [] },
-          },
-        ],
-      });
-  
-      const filteredLessons = lessons.filter(
-        lesson => lesson.Students.length >= minCount && lesson.Students.length <= maxCount
-      );
-  
-      if (filteredLessons.length === 0) {
-        return res.status(200).json({ message: 'Нет занятий с указанным количеством студентов' });
-      }
-  
-      res.json(filteredLessons);
-    } catch (error) {
-      console.error('Ошибка при фильтрации по количеству учеников:', error);
-      res.status(500).send('Ошибка при фильтрации по количеству учеников');
     }
   });
 
